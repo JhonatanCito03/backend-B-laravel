@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Usuario;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Hash;
+
 
 class usuarioController extends Controller
 {
@@ -50,7 +52,7 @@ class usuarioController extends Controller
         $usuarios = Usuario::create([
             'name' => $request -> name,
             'email' => $request -> email,
-            'password' => $request -> password
+            'password' => bcrypt($request->password)
         ]);
 
         if(!$usuarios){
@@ -67,5 +69,57 @@ class usuarioController extends Controller
         ];
 
         return response() -> json($data,201);
+    }
+
+    public function validateCredentials(Request $request)
+    {
+        //Validate email and password
+        $validator = Validator::make($request->all(), [
+            'email' => 'required|email',
+            'password' => 'required'
+        ]);
+
+        if($validator->fails())
+        {
+            return response()->json([
+                'message' => 'Datos invalidos',
+                'errors' => $validator->errors(),
+                'status' => 400
+            ], 400);
+        }
+
+        //email finding
+
+        $usuarios = Usuario::where('email', $request->email)->first();
+
+        if(!$usuarios) 
+        {
+            return response()->json([
+                'valid' => false,
+                'message' => 'El correo no existe',
+                'status' => 400
+            ], 404);
+        }
+
+        //password validate after validating email
+        if(!Hash::check($request->password, $usuarios->password)){
+            return response()->json([
+                'valid' => false,
+                'message' => 'La contraseña es incorrecta',
+                'status' => 401
+            ], 401);
+        }
+
+        //Validate credentials
+        return response()->json([
+            'valid'=> true,
+            'message' => 'Credenciales validas',
+            'usuario' => [
+                'id' => $usuarios->id,
+                'name' => $usuarios->name,
+                'email' => $usuarios->email
+            ],
+            'status' => 200
+        ], 200);
     }
 }

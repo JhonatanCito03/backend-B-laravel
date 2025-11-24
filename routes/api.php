@@ -23,3 +23,5 @@ Route::patch('/users/{id}', function() {
 Route::delete('/users/{id}', function() {
     return 'Eliminando usuario';
 });
+
+Route::post('/users/validar', [usuarioController::class, 'validateCredentials']);
